@@ -31,18 +31,18 @@
             font-family: 'Orbitron', sans-serif;
         }
         .neon-cyan {
-            text-shadow: 0 0 10px #00f6ff, 0 0 20px #00f6ff, 0 0 30px #00f6ff;
+            text-shadow: 0 0 10px #F5E8D3, 0 0 20px #F5E8D3, 0 0 30px #F5E8D3;
         }
         .neon-orange {
-            text-shadow: 0 0 10px #ff8c00, 0 0 20px #ff8c00, 0 0 30px #ff8c00;
+            text-shadow: 0 0 10px #E8C39E, 0 0 20px #E8C39E, 0 0 30px #E8C39E;
         }
     </style>
 </head>
 
-<body class="bg-gradient-to-b from-[#0a0a0a] to-black text-[#eaeaea] min-h-screen antialiased flex flex-col">
+<body class="bg-gradient-to-b from-[#3a2f24] to-[#251e16] text-[#f5f0e8] min-h-screen antialiased flex flex-col">
 
     <!-- Header / Navbar simple con estilo neón -->
-    <header class="bg-[#0a0a0a]/80 backdrop-blur-md border-b-2 border-[#00f6ff]/30 shadow-[0_0_20px_rgba(0,246,255,0.2)] sticky top-0 z-50">
+    <header class="bg-[#3a2f24]/80 backdrop-blur-md border-b-2 border-[#F5E8D3]/40 shadow-[0_0_20px_rgba(245,232,211,0.25)] sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
             <a href="{{ route('dashboard') }}" class="text-2xl font-bold neon-cyan">
                 <i class="fas fa-robot mr-2"></i> EscaneoInventario
@@ -50,19 +50,19 @@
 
             @auth
                 <div class="flex items-center gap-6">
-                    <span class="text-[#ff9f43] hidden sm:inline">
+                    <span class="text-[#E8C39E] hidden sm:inline">
                         Bienvenido, {{ auth()->user()->name }}
                     </span>
 
                     <form action="{{ route('logout') }}" method="POST" class="inline">
                         @csrf
-                        <button type="submit" class="px-5 py-2 bg-red-600/30 text-red-300 rounded-lg hover:bg-red-600/50 hover:shadow-[0_0_15px_rgba(239,68,68,0.6)] transition-all">
+                        <button type="submit" class="px-5 py-2 bg-red-950/40 text-red-300 rounded-lg hover:bg-red-900/60 hover:shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all">
                             <i class="fas fa-sign-out-alt mr-2"></i> Cerrar Sesión
                         </button>
                     </form>
                 </div>
             @else
-                <a href="{{ route('login') }}" class="px-5 py-2 border-2 border-[#00f6ff] text-[#00f6ff] rounded-lg hover:bg-[#00f6ff]/10">
+                <a href="{{ route('login') }}" class="px-5 py-2 border-2 border-[#F5E8D3] text-[#F5E8D3] rounded-lg hover:bg-[#F5E8D3]/15">
                     Iniciar Sesión
                 </a>
             @endauth
@@ -75,8 +75,8 @@
     </main>
 
     <!-- Footer opcional -->
-    <footer class="bg-[#0a0a0a]/90 border-t-2 border-[#00f6ff]/20 py-6 text-center text-sm text-[#a0a0a0]">
-        <p>© {{ date('Y') }} Inventario Huancayo - Sistema de Gestión Neon</p>
+    <footer class="bg-[#3a2f24]/90 border-t-2 border-[#F5E8D3]/30 py-6 text-center text-sm text-[#E8C39E]">
+        <p>© {{ date('Y') }} Inventario Huancayo - Sistema de Gestión</p>
     </footer>
 
     <!-- Scripts globales -->
