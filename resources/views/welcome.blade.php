@@ -107,15 +107,22 @@
             <div class="mb-16 bg-[#2a1f14]/90 backdrop-blur-md p-10 rounded-3xl border border-[#A67B5B]/30 shadow-2xl">
                 <h2 class="text-4xl font-bold text-[#D4A373] text-center mb-8">ESCANEAR HERRAMIENTA</h2>
 
+                <!-- BOTÓN PARA ALTERNAR MODO -->
+                <div class="text-center mb-6">
+                    <button id="toggle-mode" class="px-8 py-3 bg-[#8B5A2B] hover:bg-[#A67B5B] text-white font-bold rounded-xl transition-all duration-300">
+                        Modo: Cámara <i class="fas fa-camera ml-2"></i>
+                    </button>
+                </div>
+
                 <div class="max-w-xl mx-auto space-y-8">
-                    <!-- CÁMARA -->
+                    <!-- CÁMARA (se muestra/oculta con el botón) -->
                     <div id="scanner-container">
                         <video id="live-video" autoplay playsinline muted></video>
                         <div class="guide-box"></div>
                         <div class="guide-text">Apunta SOLO al código de barras</div>
                     </div>
 
-                    <!-- Input oculto para escáneres físicos USB/Bluetooth (modo teclado) -->
+                    <!-- Input oculto para escáner físico -->
                     <input type="text" id="barcode-input" autofocus autocomplete="off" class="hidden absolute opacity-0 pointer-events-none" style="left: -9999px; top: -9999px;">
 
                     <!-- Resultado -->
@@ -129,14 +136,14 @@
                 </div>
             </div>
 
-            <!-- Herramientas Disponibles (se actualizará automáticamente) -->
+            <!-- Herramientas Disponibles -->
             <div class="text-center" id="tools-section">
                 <h2 class="text-4xl lg:text-6xl font-extrabold text-center mb-12 neon-title">
                     Herramientas Disponibles
                 </h2>
 
                 <div id="tools-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                    <!-- Las tarjetas se cargan aquí vía JS -->
+                    <!-- Tarjetas se cargan vía JS -->
                 </div>
             </div>
         </div>
@@ -152,26 +159,29 @@
             const resultDiv = document.getElementById('result');
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
             const toolsGrid = document.getElementById('tools-grid');
+            const scannerContainer = document.getElementById('scanner-container');
             const barcodeInput = document.getElementById('barcode-input');
+            const toggleButton = document.getElementById('toggle-mode');
 
             let quaggaStarted = false;
             let lastDetectedCode = null;
             let lastDetectionTime = 0;
-            const cooldown = 5000; // 5 segundos entre detecciones del mismo código
+            const cooldown = 5000;
+            let usingCamera = true; // Modo inicial: Cámara
 
             // Cargar herramientas iniciales
             function loadTools() {
                 fetch('/tools/available')
                     .then(res => res.json())
                     .then(tools => {
-                        toolsGrid.innerHTML = ''; // Limpia tarjetas anteriores
+                        toolsGrid.innerHTML = '';
 
                         if (tools.length === 0) {
                             toolsGrid.innerHTML = '<p class="col-span-full text-center text-2xl text-[#D4A373]">No hay herramientas disponibles</p>';
                             return;
                         }
 
-                        tools.forEach(tool => {
+                        tools.for (tool in tools) {
                             const card = document.createElement('div');
                             card.className = 'tool-card bg-[#2a1f14]/80 backdrop-blur-md rounded-2xl overflow-hidden border border-[#A67B5B]/20';
                             card.innerHTML = `
@@ -198,13 +208,34 @@
                                 </div>
                             `;
                             toolsGrid.appendChild(card);
-                        });
+                        }
                     })
                     .catch(err => console.log('Error cargando herramientas:', err));
             }
 
-            // Cargar herramientas al inicio
             loadTools();
+
+            // Alternar entre modo cámara y escáner físico
+            toggleButton.addEventListener('click', function() {
+                usingCamera = !usingCamera;
+
+                if (usingCamera) {
+                    // Modo Cámara
+                    toggleButton.innerHTML = 'Modo: Cámara <i class="fas fa-camera ml-2"></i>';
+                    scannerContainer.classList.remove('hidden');
+                    barcodeInput.blur();
+                    if (!quaggaStarted) initCamera();
+                } else {
+                    // Modo Escáner Físico
+                    toggleButton.innerHTML = 'Modo: Escáner Físico <i class="fas fa-barcode ml-2"></i>';
+                    scannerContainer.classList.add('hidden');
+                    barcodeInput.focus();
+                    if (quaggaStarted) {
+                        Quagga.stop();
+                        quaggaStarted = false;
+                    }
+                }
+            });
 
             function initCamera() {
                 if (quaggaStarted) return;
@@ -228,15 +259,15 @@
                 })
                 .catch(err => {
                     console.error("Error al acceder a cámara:", err);
-                    resultDiv.innerHTML += '<p class="text-yellow-400 mt-6 text-center">No se pudo abrir la cámara. Verifica permisos.</p>';
+                    resultDiv.innerHTML += '<p class="text-yellow-400 mt-6 text-center">No hay cámara disponible. Usa el modo Escáner Físico.</p>';
+                    toggleButton.click(); // Cambia automáticamente al modo físico si no hay cámara
                 });
             }
 
-            initCamera();
-
-            document.body.addEventListener('click', () => {
-                if (!quaggaStarted) initCamera();
-            }, { once: true });
+            // Iniciar cámara solo si estamos en modo cámara
+            if (usingCamera) {
+                initCamera();
+            }
 
             function startQuagga() {
                 Quagga.init({
@@ -258,11 +289,11 @@
                 }, err => {
                     if (err) {
                         console.error("Error Quagga:", err);
-                        resultDiv.innerHTML += '<p class="text-red-400 mt-4">Error iniciando escáner.</p>';
+                        resultDiv.innerHTML += '<p class="text-red-400 mt-4">Error iniciando escáner de cámara.</p>';
                         return;
                     }
                     Quagga.start();
-                    console.log("Escáner iniciado - acerca mucho el código y mantén quieto");
+                    console.log("Escáner de cámara iniciado");
                 });
 
                 Quagga.onDetected(data => {
@@ -270,16 +301,13 @@
                     let code = data.codeResult.code.trim();
                     code = code.toUpperCase().replace(/[^HR0-9]/g, '');
 
-                    console.log("¡CÓDIGO DETECTADO!:", code);
+                    console.log("¡CÓDIGO DETECTADO por cámara!:", code);
 
                     if (code === lastDetectedCode && (now - lastDetectionTime) < cooldown) {
-                        console.log("→ Ignorado (mismo código en cooldown)");
                         return;
                     }
 
                     if (code.startsWith('HR') && code.length === 7) {
-                        console.log("Código válido → procesando:", code);
-
                         lastDetectedCode = code;
                         lastDetectionTime = now;
 
@@ -290,11 +318,34 @@
                             document.getElementById('scanner-container').classList.remove('border-green-500', 'shadow-2xl', 'shadow-green-500/50');
                             resultDiv.innerHTML = '';
                         }, 4000);
-                    } else {
-                        console.log("→ Ignorado (formato inválido)");
                     }
                 });
             }
+
+            // Captura códigos de escáner físico
+            barcodeInput.addEventListener('input', function(e) {
+                const code = this.value.trim();
+
+                if (code.startsWith('HR') && code.length === 7) {
+                    console.log("Código detectado por escáner físico:", code);
+                    processScan(code);
+                    this.value = '';
+
+                    resultDiv.innerHTML = `<div class="text-2xl text-green-400 mt-4">Escaneado con éxito: ${code}</div>`;
+                    setTimeout(() => { resultDiv.innerHTML = ''; }, 1500);
+                }
+
+                if (this.value.length > 15) {
+                    this.value = '';
+                }
+            });
+
+            // Mantener foco en input oculto cuando estamos en modo físico
+            setInterval(() => {
+                if (!usingCamera && document.activeElement !== barcodeInput) {
+                    barcodeInput.focus();
+                }
+            }, 500);
 
             function processScan(code) {
                 console.log('Enviando al backend:', code);
@@ -332,7 +383,6 @@
                             </div>
                         `;
 
-                        // Esperar 2 segundos y actualizar historial + tarjetas
                         setTimeout(() => {
                             updateLastScans();
                             loadTools();
@@ -423,38 +473,10 @@
                     .catch(err => console.log('Error cargando herramientas:', err));
             }
 
-            // Captura códigos de escáner físico (USB o Bluetooth en modo teclado)
-            barcodeInput.addEventListener('input', function(e) {
-                const code = this.value.trim();
-
-                // Solo si es un código válido
-                if (code.startsWith('HR') && code.length === 7) {
-                    console.log("Código detectado por escáner físico:", code);
-                    processScan(code);  // Usa la misma función que ya tienes para Quagga
-                    this.value = '';    // Limpia para el siguiente escaneo
-
-                    // Feedback visual rápido (opcional)
-                    resultDiv.innerHTML = `<div class="text-2xl text-green-400 mt-4">Escaneado con éxito: ${code}</div>`;
-                    setTimeout(() => { resultDiv.innerHTML = ''; }, 1500);
-                }
-
-                // Limpieza si se escribe algo raro o muy largo
-                if (this.value.length > 15) {
-                    this.value = '';
-                }
-            });
-
-            // Mantener el foco siempre en el input oculto (para que el escáner funcione sin clic)
-            setInterval(() => {
-                if (document.activeElement !== barcodeInput) {
-                    barcodeInput.focus();
-                }
-            }, 500);
-
             // Actualizar historial cada 2 segundos
             setInterval(updateLastScans, 2000);
 
-            // Cargar historial y herramientas al inicio
+            // Cargar inicial
             updateLastScans();
             loadTools();
         });
