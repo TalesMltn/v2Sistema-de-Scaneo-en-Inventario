@@ -115,6 +115,9 @@
                         <div class="guide-text">Apunta SOLO al código de barras</div>
                     </div>
 
+                    <!-- Input oculto para escáneres físicos USB/Bluetooth (modo teclado) -->
+                    <input type="text" id="barcode-input" autofocus autocomplete="off" class="hidden absolute opacity-0 pointer-events-none" style="left: -9999px; top: -9999px;">
+
                     <!-- Resultado -->
                     <div id="result" class="min-h-[140px] text-center text-2xl"></div>
 
@@ -149,6 +152,7 @@
             const resultDiv = document.getElementById('result');
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
             const toolsGrid = document.getElementById('tools-grid');
+            const barcodeInput = document.getElementById('barcode-input');
 
             let quaggaStarted = false;
             let lastDetectedCode = null;
@@ -331,7 +335,7 @@
                         // Esperar 2 segundos y actualizar historial + tarjetas
                         setTimeout(() => {
                             updateLastScans();
-                            loadTools(); // Actualiza las tarjetas de herramientas
+                            loadTools();
                             console.log("Historial y tarjetas actualizadas automáticamente después de 2 segundos");
                         }, 2000);
                     } else {
@@ -418,6 +422,34 @@
                     })
                     .catch(err => console.log('Error cargando herramientas:', err));
             }
+
+            // Captura códigos de escáner físico (USB o Bluetooth en modo teclado)
+            barcodeInput.addEventListener('input', function(e) {
+                const code = this.value.trim();
+
+                // Solo si es un código válido
+                if (code.startsWith('HR') && code.length === 7) {
+                    console.log("Código detectado por escáner físico:", code);
+                    processScan(code);  // Usa la misma función que ya tienes para Quagga
+                    this.value = '';    // Limpia para el siguiente escaneo
+
+                    // Feedback visual rápido (opcional)
+                    resultDiv.innerHTML = `<div class="text-2xl text-green-400 mt-4">Escaneado con éxito: ${code}</div>`;
+                    setTimeout(() => { resultDiv.innerHTML = ''; }, 1500);
+                }
+
+                // Limpieza si se escribe algo raro o muy largo
+                if (this.value.length > 15) {
+                    this.value = '';
+                }
+            });
+
+            // Mantener el foco siempre en el input oculto (para que el escáner funcione sin clic)
+            setInterval(() => {
+                if (document.activeElement !== barcodeInput) {
+                    barcodeInput.focus();
+                }
+            }, 500);
 
             // Actualizar historial cada 2 segundos
             setInterval(updateLastScans, 2000);
