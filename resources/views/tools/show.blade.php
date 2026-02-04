@@ -51,10 +51,10 @@
                         <div class="flex flex-col items-center md:items-start">
                             <div class="w-full md:w-auto font-semibold text-[#E3BC9A] mb-2">Código:</div>
                             <div class="text-3xl font-bold text-[#D4B8E8] mb-4">{{ $tool->code ?? 'No asignado' }}</div>
-                            <!-- Código de barras grande -->
                             @if ($tool->code)
-                                <div id="barcode-show" class="bg-white p-6 rounded-2xl shadow-[0_0_20px_rgba(200,162,200,0.3)] border-2 border-[#C8A2C8]/30">
-                                    <svg id="barcode-large"></svg>
+                                <div id="barcode-show" class="bg-white p-6 rounded-2xl shadow-[0_0_20px_rgba(200,162,200,0.3)] border-2 border-[#C8A2C8]/30 mx-auto">
+                                    @component('components.barcode', ['code' => $tool->code, 'id' => 'large'])
+                                    @endcomponent
                                 </div>
                             @endif
                         </div>
@@ -118,22 +118,27 @@
             </div>
         </div>
 
-        <!-- Script para mostrar barcode grande en show -->
         @section('scripts')
             <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
             <script>
-                @if ($tool->code)
-                    JsBarcode("#barcode-large", "{{ $tool->code }}", {
-                        format: "CODE128",
-                        lineColor: "#8A2BE2",
-                        width: 3,
-                        height: 140,
-                        fontSize: 28,
-                        background: "#111",
-                        margin: 20,
-                        displayValue: true
-                    });
-                @endif
+                document.addEventListener('DOMContentLoaded', function() {
+                    const largeBarcode = document.querySelector('#barcode-large');
+                    if (largeBarcode) {
+                        const code = largeBarcode.getAttribute('aria-label')?.replace('Código de barras: ', '') || '';
+                        if (code) {
+                            JsBarcode("#barcode-large", code, {
+                                format: "CODE128",
+                                lineColor: "#000000",
+                                width: 3,
+                                height: 140,
+                                fontSize: 28,
+                                background: "#ffffff",
+                                margin: 20,
+                                displayValue: true
+                            });
+                        }
+                    }
+                });
             </script>
         @endsection
     </div>

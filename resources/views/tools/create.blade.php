@@ -68,9 +68,8 @@
 
                             <!-- Previsualización del barcode -->
                             <div id="barcode-preview" class="mt-6 text-center hidden">
-                                <div class="inline-block bg-white p-6 rounded-2xl shadow-[0_0_20px_rgba(200,162,200,0.3)] border-2 border-[#C8A2C8]/30">
-                                    <svg id="barcode"></svg>
-                                </div>
+                                @component('components.barcode', ['code' => '', 'id' => 'preview'])
+                                @endcomponent
                                 <p class="mt-3 text-[#E3BC9A] font-medium">Previsualización del código de barras</p>
                             </div>
 
@@ -203,19 +202,14 @@
             <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
             <script>
                 document.getElementById('generate-code')?.addEventListener('click', function() {
-                    // Generación simple (puedes cambiar a petición AJAX al backend después)
                     const prefix = 'HR';
-                    const randomNum = Math.floor(Math.random() * 90000) + 10000; // 10000-99999
+                    const randomNum = Math.floor(Math.random() * 90000) + 10000;
                     const code = prefix + randomNum.toString().padStart(5, '0');
 
-                    // Poner el código en el input
                     document.getElementById('code').value = code;
 
-                    // Mostrar barcode
                     const preview = document.getElementById('barcode-preview');
-                    const barcode = document.getElementById('barcode');
-
-                    JsBarcode("#barcode", code, {
+                    JsBarcode("#barcode-preview", code, {
                         format: "CODE128",
                         lineColor: "#000000",
                         width: 2.5,

@@ -3,8 +3,13 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\ScanController;
 
-// Página principal (welcome o dashboard si ya está logueado)
+// Rutas PÚBLICAS (sin login) → ESCANEO DIRECTO
+Route::post('/scan/process', [ScanController::class, 'process'])->name('scan.process');
+Route::get('/scan/last-movements', [ScanController::class, 'lastMovements']);
+
+// Página principal (welcome si no está logueado, dashboard si sí)
 Route::get('/', function () {
     return Auth::check() 
         ? redirect()->route('dashboard') 

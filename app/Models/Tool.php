@@ -12,7 +12,7 @@ class Tool extends Model
 
     protected $fillable = [
         'name', 'slug', 'code', 'category_id', 'stock', 'image',
-        'status', 'needs_maintenance', 'notes',
+        'status', 'needs_maintenance', 'notes', 'is_out',
     ];
 
     // Genera slug automáticamente
@@ -33,5 +33,10 @@ class Tool extends Model
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function movements()
+    {
+        return $this->hasMany(Movement::class);
     }
 }

@@ -58,33 +58,19 @@
                                     <td class="px-6 py-5 font-medium text-[#f0e6ff]">{{ $tool->name }}</td>
                                     <td class="px-6 py-5 text-center">
                                         @if ($tool->code)
-                                            <div class="flex flex-col items-center gap-2">
-                                                <svg id="barcode-{{ $tool->id }}" class="mx-auto w-40 h-20"></svg>
-                                                <div class="flex items-center gap-3">
-                                                    <span class="text-[#D4B8E8] font-bold text-sm">{{ $tool->code }}</span>
-                                                    
-                                                    <!-- Botón de impresora -->
-                                                    <button type="button" 
-                                                            onclick="printToolBarcode('{{ $tool->id }}', '{{ addslashes($tool->name) }}', '{{ $tool->code }}')"
-                                                            class="p-2 bg-[#140d1a]/70 text-[#C8A2C8] rounded-lg hover:bg-[#C8A2C8]/20 hover:text-white transition-all"
-                                                            title="Imprimir código de barras">
-                                                        <i class="fas fa-print text-lg"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
+                                            @component('components.barcode', ['code' => $tool->code, 'id' => $tool->id])
+                                            @endcomponent
 
-                                            <script>
-                                                JsBarcode("#barcode-{{ $tool->id }}", "{{ $tool->code }}", {
-                                                    format: "CODE128",
-                                                    lineColor: "#000000",
-                                                    width: 2.2,
-                                                    height: 80,
-                                                    fontSize: 14,
-                                                    background: "#ffffff",
-                                                    margin: 5,
-                                                    displayValue: true
-                                                });
-                                            </script>
+                                            <div class="mt-2 flex items-center justify-center gap-3">
+                                                <span class="text-[#D4B8E8] font-bold text-sm">{{ $tool->code }}</span>
+                                                
+                                                <button type="button" 
+                                                        onclick="printToolBarcode('{{ $tool->id }}', '{{ addslashes($tool->name) }}', '{{ $tool->code }}')"
+                                                        class="p-2 bg-[#140d1a]/70 text-[#C8A2C8] rounded-lg hover:bg-[#C8A2C8]/20 hover:text-white transition-all"
+                                                        title="Imprimir código de barras">
+                                                    <i class="fas fa-print text-lg"></i>
+                                                </button>
+                                            </div>
                                         @else
                                             <span class="text-[#E3BC9A]/70">Sin código</span>
                                         @endif
@@ -123,14 +109,14 @@
                                                class="p-4 bg-[#C8A2C8]/10 text-[#C8A2C8] rounded-xl 
                                                       hover:bg-[#C8A2C8]/25 hover:shadow-[0_0_25px_rgba(200,162,200,0.5)] 
                                                       transition-all duration-300 transform hover:scale-110"
-                                               title="Ver detalles" aria-label="Ver detalles de {{ $tool->name }}">
+                                               title="Ver detalles">
                                                 <i class="fas fa-eye text-xl"></i>
                                             </a>
                                             <a href="{{ route('tools.edit', $tool) }}" 
                                                class="p-4 bg-[#8A2BE2]/10 text-[#8A2BE2] rounded-xl 
                                                       hover:bg-[#8A2BE2]/30 hover:shadow-[0_0_25px_rgba(138,43,226,0.6)] 
                                                       transition-all duration-300 transform hover:scale-110"
-                                               title="Editar" aria-label="Editar {{ $tool->name }}">
+                                               title="Editar">
                                                 <i class="fas fa-edit text-xl"></i>
                                             </a>
                                             <form action="{{ route('tools.destroy', $tool) }}" method="POST" class="inline">
@@ -141,7 +127,7 @@
                                                         class="p-4 bg-red-900/20 text-red-400 rounded-xl 
                                                                hover:bg-red-900/40 hover:shadow-[0_0_25px_rgba(239,68,68,0.4)] 
                                                                transition-all duration-300 transform hover:scale-110"
-                                                        title="Eliminar" aria-label="Eliminar {{ $tool->name }}">
+                                                        title="Eliminar">
                                                     <i class="fas fa-trash text-xl"></i>
                                                 </button>
                                             </form>
@@ -156,14 +142,11 @@
         </div>
     </div>
 
-    <!-- Scripts -->
     @section('scripts')
         <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
         <script>
-            // Función para imprimir SOLO el barcode de una herramienta
             function printToolBarcode(toolId, name, code) {
                 const barcodeElement = document.getElementById('barcode-' + toolId);
-
                 if (!barcodeElement) return;
 
                 const printContent = barcodeElement.outerHTML;
@@ -178,7 +161,6 @@
                             body { margin: 0; padding: 20px; font-family: Arial, sans-serif; text-align: center; background: white; }
                             svg { width: 100%; max-width: 400px; height: auto; margin: 20px 0; }
                             h2 { font-size: 24px; color: #333; margin-bottom: 20px; }
-                            .no-print { display: none; }
                         </style>
                     </head>
                     <body onload="window.print(); setTimeout(() => window.close(), 2000);">
@@ -190,20 +172,21 @@
                 printWindow.document.close();
             }
 
-            // Generar todos los barcodes al cargar la página
             document.addEventListener('DOMContentLoaded', function() {
                 document.querySelectorAll('[id^="barcode-"]').forEach(el => {
-                    const code = el.id.replace('barcode-', '');
-                    JsBarcode("#" + el.id, code, {
-                        format: "CODE128",
-                        lineColor: "#000000",
-                        width: 2.2,
-                        height: 80,
-                        fontSize: 14,
-                        background: "#ffffff",
-                        margin: 5,
-                        displayValue: true
-                    });
+                    const code = el.getAttribute('aria-label')?.replace('Código de barras: ', '') || '';
+                    if (code) {
+                        JsBarcode("#" + el.id, code, {
+                            format: "CODE128",
+                            lineColor: "#000000",
+                            width: 2.2,
+                            height: 80,
+                            fontSize: 14,
+                            background: "#ffffff",
+                            margin: 5,
+                            displayValue: true
+                        });
+                    }
                 });
             });
         </script>
