@@ -3,11 +3,35 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\ScanController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ToolController;
 
-// Rutas PÚBLICAS (sin login) → ESCANEO DIRECTO
+// Rutas PÚBLICAS (sin login) → ESCANEO DIRECTO + herramientas disponibles
 Route::post('/scan/process', [ScanController::class, 'process'])->name('scan.process');
 Route::get('/scan/last-movements', [ScanController::class, 'lastMovements']);
+
+// Ruta pública para herramientas disponibles (para que carguen sin login)
+Route::get('/tools/available', function () {
+    $tools = \App\Models\Tool::with('category')
+        ->where('stock', '>', 0)
+        ->latest()
+        ->take(12)  // Puedes quitar take() si quieres mostrar TODAS
+        ->get();
+
+    return response()->json($tools->map(function ($tool) {
+        return [
+            'id' => $tool->id,
+            'name' => $tool->name,
+            'code' => $tool->code ?? 'Sin código',
+            'category' => $tool->category?->name ?? 'Sin categoría',
+            'stock' => $tool->stock,
+            'status' => $tool->status,
+            'image' => $tool->image ? Storage::url($tool->image) : null,
+        ];
+    }));
+})->name('tools.available');
 
 // Página principal (welcome si no está logueado, dashboard si sí)
 Route::get('/', function () {
@@ -58,11 +82,11 @@ Route::middleware('auth')->group(function () {
     })->name('dashboard');
 
     // Recursos completos para categorías
-    Route::resource('categories', \App\Http\Controllers\CategoryController::class)
+    Route::resource('categories', CategoryController::class)
         ->names('categories');
 
     // Recursos completos para herramientas
-    Route::resource('tools', \App\Http\Controllers\ToolController::class)
+    Route::resource('tools', ToolController::class)
         ->names('tools');
 
     // Ruta para generar código único de herramienta (usada en el botón "Generar" del create)

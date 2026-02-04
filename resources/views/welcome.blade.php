@@ -108,7 +108,7 @@
                 <h2 class="text-4xl font-bold text-[#D4A373] text-center mb-8">ESCANEAR HERRAMIENTA</h2>
 
                 <div class="max-w-xl mx-auto space-y-8">
-                    <!-- CÁMERA -->
+                    <!-- CÁMARA -->
                     <div id="scanner-container">
                         <video id="live-video" autoplay playsinline muted></video>
                         <div class="guide-box"></div>
@@ -126,53 +126,15 @@
                 </div>
             </div>
 
-            <!-- Herramientas destacadas -->
-            <div class="text-center">
+            <!-- Herramientas Disponibles (se actualizará automáticamente) -->
+            <div class="text-center" id="tools-section">
                 <h2 class="text-4xl lg:text-6xl font-extrabold text-center mb-12 neon-title">
                     Herramientas Disponibles
                 </h2>
 
-                @php
-                    $tools = \App\Models\Tool::with('category')->where('stock', '>', 0)->latest()->take(12)->get();
-                @endphp
-
-                @if ($tools->isNotEmpty())
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                        @foreach ($tools as $tool)
-                            <div class="tool-card bg-[#2a1f14]/80 backdrop-blur-md rounded-2xl overflow-hidden border border-[#A67B5B]/20">
-                                <div class="image-wrapper">
-                                    @if ($tool->image)
-                                        <img src="{{ Storage::url($tool->image) }}" alt="{{ $tool->name }}" class="w-full h-56 object-cover">
-                                    @else
-                                        <div class="w-full h-56 bg-gradient-to-br from-[#2a1f14] to-[#1f150e] flex items-center justify-center placeholder-img">
-                                            <i class="fas fa-tools text-7xl text-[#A67B5B]/30"></i>
-                                        </div>
-                                    @endif
-                                </div>
-
-                                <div class="p-6 text-center">
-                                    <h3 class="text-2xl font-bold mb-2 neon-cyan">{{ $tool->name }}</h3>
-                                    <p class="text-sm text-[#D4A373] mb-1">{{ $tool->code ?? 'Sin código' }}</p>
-                                    <p class="text-base text-[#D4A373] mb-3">{{ $tool->category?->name ?? 'Sin categoría' }}</p>
-                                    <div class="flex justify-center gap-6 text-sm">
-                                        <div><span class="font-bold text-[#A67B5B]">Stock:</span> {{ $tool->stock }}</div>
-                                        <div>
-                                            @if ($tool->status === 'optimo') <span class="text-green-400 font-bold">Óptimo</span>
-                                            @elseif ($tool->status === 'mantenimiento') <span class="text-yellow-400 font-bold">Mantenimiento</span>
-                                            @else <span class="text-red-400 font-bold">Dañado</span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @else
-                    <div class="text-center py-20">
-                        <i class="fas fa-tools text-9xl text-[#A67B5B]/30 mb-8"></i>
-                        <p class="text-3xl font-semibold text-[#D4A373]">Aún no hay herramientas registradas.</p>
-                    </div>
-                @endif
+                <div id="tools-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                    <!-- Las tarjetas se cargan aquí vía JS -->
+                </div>
             </div>
         </div>
     </main>
@@ -186,11 +148,59 @@
         document.addEventListener('DOMContentLoaded', function() {
             const resultDiv = document.getElementById('result');
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+            const toolsGrid = document.getElementById('tools-grid');
 
             let quaggaStarted = false;
             let lastDetectedCode = null;
             let lastDetectionTime = 0;
-            const cooldown = 5000; // 5 segundos de espera entre detecciones del mismo código
+            const cooldown = 5000; // 5 segundos entre detecciones del mismo código
+
+            // Cargar herramientas iniciales
+            function loadTools() {
+                fetch('/tools/available')
+                    .then(res => res.json())
+                    .then(tools => {
+                        toolsGrid.innerHTML = ''; // Limpia tarjetas anteriores
+
+                        if (tools.length === 0) {
+                            toolsGrid.innerHTML = '<p class="col-span-full text-center text-2xl text-[#D4A373]">No hay herramientas disponibles</p>';
+                            return;
+                        }
+
+                        tools.forEach(tool => {
+                            const card = document.createElement('div');
+                            card.className = 'tool-card bg-[#2a1f14]/80 backdrop-blur-md rounded-2xl overflow-hidden border border-[#A67B5B]/20';
+                            card.innerHTML = `
+                                <div class="image-wrapper">
+                                    ${tool.image ? 
+                                        `<img src="${tool.image}" alt="${tool.name}" class="w-full h-56 object-cover">` :
+                                        `<div class="w-full h-56 bg-gradient-to-br from-[#2a1f14] to-[#1f150e] flex items-center justify-center">
+                                            <i class="fas fa-tools text-7xl text-[#A67B5B]/30"></i>
+                                        </div>`
+                                    }
+                                </div>
+                                <div class="p-6 text-center">
+                                    <h3 class="text-2xl font-bold mb-2 neon-cyan">${tool.name}</h3>
+                                    <p class="text-sm text-[#D4A373] mb-1">${tool.code}</p>
+                                    <p class="text-base text-[#D4A373] mb-3">${tool.category}</p>
+                                    <div class="flex justify-center gap-6 text-sm">
+                                        <div><span class="font-bold text-[#A67B5B]">Stock:</span> ${tool.stock}</div>
+                                        <div>
+                                            <span class="${tool.status === 'optimo' ? 'text-green-400' : tool.status === 'mantenimiento' ? 'text-yellow-400' : 'text-red-400'} font-bold">
+                                                ${tool.status.charAt(0).toUpperCase() + tool.status.slice(1)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            toolsGrid.appendChild(card);
+                        });
+                    })
+                    .catch(err => console.log('Error cargando herramientas:', err));
+            }
+
+            // Cargar herramientas al inicio
+            loadTools();
 
             function initCamera() {
                 if (quaggaStarted) return;
@@ -258,13 +268,11 @@
 
                     console.log("¡CÓDIGO DETECTADO!:", code);
 
-                    // Ignorar si es el mismo código y no pasó el cooldown
                     if (code === lastDetectedCode && (now - lastDetectionTime) < cooldown) {
                         console.log("→ Ignorado (mismo código en cooldown)");
                         return;
                     }
 
-                    // Validar formato
                     if (code.startsWith('HR') && code.length === 7) {
                         console.log("Código válido → procesando:", code);
 
@@ -273,11 +281,10 @@
 
                         processScan(code);
 
-                        // Efecto visual breve
                         document.getElementById('scanner-container').classList.add('border-green-500', 'shadow-2xl', 'shadow-green-500/50');
                         setTimeout(() => {
                             document.getElementById('scanner-container').classList.remove('border-green-500', 'shadow-2xl', 'shadow-green-500/50');
-                            resultDiv.innerHTML = ''; // Limpia después de 4 segundos
+                            resultDiv.innerHTML = '';
                         }, 4000);
                     } else {
                         console.log("→ Ignorado (formato inválido)");
@@ -320,10 +327,16 @@
                                 Stock actual: <span class="font-bold">${data.new_stock}</span>
                             </div>
                         `;
+
+                        // Esperar 2 segundos y actualizar historial + tarjetas
+                        setTimeout(() => {
+                            updateLastScans();
+                            loadTools(); // Actualiza las tarjetas de herramientas
+                            console.log("Historial y tarjetas actualizadas automáticamente después de 2 segundos");
+                        }, 2000);
                     } else {
                         resultDiv.innerHTML = `<div class="text-red-400 text-3xl">❌ ${data.message}</div>`;
                     }
-                    updateLastScans();
                 })
                 .catch(err => {
                     console.error('Fetch error:', err);
@@ -332,41 +345,86 @@
             }
 
             function updateLastScans() {
-    fetch('/scan/last-movements')
-        .then(res => res.json())
-        .then(data => {
-            const list = document.getElementById('scans-list');
-            list.innerHTML = ''; // Limpia la lista anterior
+                fetch('/scan/last-movements')
+                    .then(res => res.json())
+                    .then(data => {
+                        const list = document.getElementById('scans-list');
+                        list.innerHTML = '';
 
-            // Tomamos solo los primeros 6 (los más recientes)
-            data.slice(0, 6).forEach(m => {
-                const div = document.createElement('div');
-                div.className = `p-4 rounded-xl ${m.action === 'salida' ? 'bg-red-950/40 border-red-600/40' : 'bg-green-950/40 border-green-600/40'} border`;
-                div.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <span class="font-bold text-lg">${m.tool_name}</span>
-                            <div class="text-sm text-[#D4A373]">${m.code}</div>
-                        </div>
-                        <span class="${m.action === 'salida' ? 'text-red-400' : 'text-green-400'} font-bold">
-                            ${m.action === 'salida' ? '🚪 SALIDA' : '🔙 DEVOLUCIÓN'}
-                        </span>
-                    </div>
-                    <div class="text-sm mt-2 text-[#D4A373]">${m.time_ago}</div>
-                `;
-                list.appendChild(div); // append → nuevo arriba
-            });
+                        data.slice(0, 6).forEach(m => {
+                            const div = document.createElement('div');
+                            div.className = `p-4 rounded-xl ${m.action === 'salida' ? 'bg-red-950/40 border-red-600/40' : 'bg-green-950/40 border-green-600/40'} border`;
+                            div.innerHTML = `
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <span class="font-bold text-lg">${m.tool_name}</span>
+                                        <div class="text-sm text-[#D4A373]">${m.code}</div>
+                                    </div>
+                                    <span class="${m.action === 'salida' ? 'text-red-400' : 'text-green-400'} font-bold">
+                                        ${m.action === 'salida' ? '🚪 SALIDA' : '🔙 DEVOLUCIÓN'}
+                                    </span>
+                                </div>
+                                <div class="text-sm mt-2 text-[#D4A373]">${m.time_ago}</div>
+                            `;
+                            list.appendChild(div);
+                        });
 
-            // Si no hay movimientos, muestra mensaje
-            if (data.length === 0) {
-                list.innerHTML = '<p class="text-center text-gray-500">No hay movimientos recientes</p>';
+                        if (data.length === 0) {
+                            list.innerHTML = '<p class="text-center text-gray-500">No hay movimientos recientes</p>';
+                        }
+                    })
+                    .catch(err => console.log('Polling error:', err));
             }
-        })
-        .catch(err => console.log('Polling error:', err));
-}
 
-            setInterval(updateLastScans, 2500);
+            function loadTools() {
+                fetch('/tools/available')
+                    .then(res => res.json())
+                    .then(tools => {
+                        toolsGrid.innerHTML = '';
+
+                        if (tools.length === 0) {
+                            toolsGrid.innerHTML = '<p class="col-span-full text-center text-2xl text-[#D4A373]">No hay herramientas disponibles</p>';
+                            return;
+                        }
+
+                        tools.forEach(tool => {
+                            const card = document.createElement('div');
+                            card.className = 'tool-card bg-[#2a1f14]/80 backdrop-blur-md rounded-2xl overflow-hidden border border-[#A67B5B]/20';
+                            card.innerHTML = `
+                                <div class="image-wrapper">
+                                    ${tool.image ? 
+                                        `<img src="${tool.image}" alt="${tool.name}" class="w-full h-56 object-cover">` :
+                                        `<div class="w-full h-56 bg-gradient-to-br from-[#2a1f14] to-[#1f150e] flex items-center justify-center">
+                                            <i class="fas fa-tools text-7xl text-[#A67B5B]/30"></i>
+                                        </div>`
+                                    }
+                                </div>
+                                <div class="p-6 text-center">
+                                    <h3 class="text-2xl font-bold mb-2 neon-cyan">${tool.name}</h3>
+                                    <p class="text-sm text-[#D4A373] mb-1">${tool.code}</p>
+                                    <p class="text-base text-[#D4A373] mb-3">${tool.category}</p>
+                                    <div class="flex justify-center gap-6 text-sm">
+                                        <div><span class="font-bold text-[#A67B5B]">Stock:</span> ${tool.stock}</div>
+                                        <div>
+                                            <span class="${tool.status === 'optimo' ? 'text-green-400' : tool.status === 'mantenimiento' ? 'text-yellow-400' : 'text-red-400'} font-bold">
+                                                ${tool.status.charAt(0).toUpperCase() + tool.status.slice(1)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            toolsGrid.appendChild(card);
+                        });
+                    })
+                    .catch(err => console.log('Error cargando herramientas:', err));
+            }
+
+            // Actualizar historial cada 2 segundos
+            setInterval(updateLastScans, 2000);
+
+            // Cargar historial y herramientas al inicio
             updateLastScans();
+            loadTools();
         });
     </script>
 </body>
